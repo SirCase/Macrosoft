@@ -1,0 +1,58 @@
+LINE ADDR CONTENTS SOURCE LINE
+  1.              	.EQU KEYBOARD_STATUS, $000
+  2.              	.EQU KEYBOARD_DATA, $001
+  3.              	.EQU MONITOR_VIDEO_BUFFER, $100
+  4.              	.EQU @, $000
+  5.  000 030000  	LDF#	$000
+  6.  001 702000  POLL:	INB	KEYBOARD_STATUS
+  7.  002 FFF038  	NOP
+  8.  003 4B2001  	JGE	POLL
+  9.  004 702001  	INB 	KEYBOARD_DATA
+ 10.  005 20000D  	CMA#	$00D		;Check if the pressed key is enter
+ 11.  006 48200C  	JEQ	CHECK		;If it is, check if the exit code was typed
+ 12.  007 200008  	CMA#	$008		;Check if backspace
+ 13.  008 48201F  	JEQ	BACKSPACE		;If so, handle backspace
+ 14.  009 713100  BACK:	OUTB !MONITOR_VIDEO_BUFFER	;Otherwise, print to the screen
+ 15.  00A 130001  	ADF#	$001		;Move to next character
+ 16.  00B 402001  	JMP	POLL
+ 17.              	
+ 18.  00C FFF009  CHECK:	TFA			;Check if at start of line
+ 19.  00D 1A0026  	MOD#	$026
+ 20.  00E 200004  	CMA#	LENGTH
+ 21.  00F 492019  	JNE	GOBACK		;Jump back if not
+ 22.  010 010000  	LDX#	$000
+ 23.  011 7050FC  CHECKLOOP:	INB+ !MONITOR_VIDEO_BUFFER-LENGTH
+ 24.  012 042024  	STA	TOCHECK
+ 25.  013 502026  	LDC	EXIT
+ 26.  014 202024  	CMA	TOCHECK
+ 27.  015 492019  	JNE	GOBACK
+ 28.  016 600004  	AOC#	LENGTH
+ 29.  017 4B2023  	JGE	END
+ 30.  018 402011  	JMP	CHECKLOOP
+ 31.              
+ 32.  019 FFF009  GOBACK:	TFA			;If enter was pressed but the exit code was not typed, we still want to handle enter normally
+ 33.  01A 1A0026  	MOD#	$026		
+ 34.  01B 042025  	STA	ENTER
+ 35.  01C 130026  	ADF#	$026
+ 36.  01D 172025  	SBF	ENTER
+ 37.  01E 402001  	JMP	POLL
+ 38.              
+ 39.  01F 170001  BACKSPACE:	SBF#	$001
+ 40.  020 000020  	LDA#	$020
+ 41.  021 713100  	OUTB !MONITOR_VIDEO_BUFFER
+ 42.  022 402001  	JMP	POLL
+ 43.              
+ 44.  023 FFFFFF  END:	HLT
+ 45.              
+ 46.  024 000000  TOCHECK:	.WORD $000
+ 47.  025 000000  ENTER:	.WORD $000
+ 48.  026 657869  EXIT:	.CHAR 'exit', LENGTH
+      027 742020
+
+                     SYMBOL TABLE CONTENTS
+
+000009 = BACK            00001F = BACKSPACE       00000C = CHECK           
+000011 = CHECKLOOP       000023 = END             000025 = ENTER           
+000026 = EXIT            000019 = GOBACK          000001 = KEYBOARD_DATA   
+000000 = KEYBOARD_STATUS 000004 = LENGTH          000100 = MONITOR_VIDEO_BUFFER
+000001 = POLL            000024 = TOCHECK         

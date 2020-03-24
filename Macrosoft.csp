@@ -1,0 +1,48 @@
+	.EQU KEYBOARD_STATUS, $000
+	.EQU KEYBOARD_DATA, $001
+	.EQU MONITOR_VIDEO_BUFFER, $100
+	.EQU @, $000
+	LDF#	$000
+POLL:	INB	KEYBOARD_STATUS
+	NOP
+	JGE	POLL
+	INB 	KEYBOARD_DATA
+	CMA#	$00D		;Check if the pressed key is enter
+	JEQ	CHECK		;If it is, check if the exit code was typed
+	CMA#	$008		;Check if backspace
+	JEQ	BACKSPACE		;If so, handle backspace
+BACK:	OUTB !MONITOR_VIDEO_BUFFER	;Otherwise, print to the screen
+	ADF#	$001		;Move to next character
+	JMP	POLL
+	
+CHECK:	TFA			;Check if at start of line
+	MOD#	$026
+	CMA#	LENGTH
+	JNE	GOBACK		;Jump back if not
+	LDX#	$000
+CHECKLOOP:	INB+ !MONITOR_VIDEO_BUFFER-LENGTH
+	STA	TOCHECK
+	LDC	EXIT
+	CMA	TOCHECK
+	JNE	GOBACK
+	AOC#	LENGTH
+	JGE	END
+	JMP	CHECKLOOP
+
+GOBACK:	TFA			;If enter was pressed but the exit code was not typed, we still want to handle enter normally
+	MOD#	$026		
+	STA	ENTER
+	ADF#	$026
+	SBF	ENTER
+	JMP	POLL
+
+BACKSPACE:	SBF#	$001
+	LDA#	$020
+	OUTB !MONITOR_VIDEO_BUFFER
+	JMP	POLL
+
+END:	HLT
+
+TOCHECK:	.WORD $000
+ENTER:	.WORD $000
+EXIT:	.CHAR 'exit', LENGTH
